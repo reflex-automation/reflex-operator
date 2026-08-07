@@ -1,278 +1,102 @@
-# EDA Server Operator
+# Reflex Operator
 
-[![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
-[![Code of Conduct](https://img.shields.io/badge/code%20of%20conduct-Ansible-yellow.svg)](https://docs.ansible.com/ansible/latest/community/code_of_conduct.html) 
+A Kubernetes operator deploying and managing **Reflex** — a
+community-maintained continuation of Event-Driven Ansible (EDA), targeting
+open-source AWX-compatible controllers, primarily
+[CIQ Ascender](https://ciq.com/products/ascender).
 
-A Kubernetes operator for Kubernetes built with [Operator SDK](https://github.com/operator-framework/operator-sdk) and Ansible for deploying and maintaining the lifecycle of your [EDA Server](https://github.com/ansible/eda-server) application.
+Friendly fork of
+[ansible/eda-server-operator](https://github.com/ansible/eda-server-operator).
+Built with [Operator SDK](https://github.com/operator-framework/operator-sdk)
+and Ansible. Deploys
+[reflex-server](https://github.com/reflex-automation/reflex-server) and
+[reflex-ui](https://github.com/reflex-automation/reflex-ui) via an `EDA`
+Custom Resource (the CRD keeps its upstream kind/group,
+`eda.ansible.com/v1alpha1`, for upstream mergeability — resource names come
+from your CR name, so instances can be named anything).
 
-## Overview
+## What Reflex changes
 
-This operator is meant to provide a more Kubernetes-native installation method for EDA Server via an EDA Custom Resource Definition (CRD). In the future, this operator will grow to be able to maintain the full life-cycle of an EDA Server deployment. Currently, it can handle fresh installs and upgrades.
+- Default images point at `ghcr.io/reflex-automation/{reflex-server,reflex-ui}:main`
+  instead of the stale `quay.io/ansible/*` images.
+- Deployed from HEAD with published images — no waiting on upstream releases.
+  HEAD matters: reflex-server requires PostgreSQL ≥ 14 (default here is 15)
+  and the `EDA_WORKER_KIND=websocket` wiring for rulebook websocket auth,
+  both missing from the last upstream release (v1.0.2).
 
-Table of Contents
-=================
+## Install
 
-- [EDA Server Operator](#eda-server-operator)
-  - [Overview](#overview)
-- [Table of Contents](#table-of-contents)
-  - [Contributing](#contributing)
-    - [Prerequisites](#prerequisites)
-  - [Install the EDA Server Operator](#install-the-eda-server-operator)
-  - [Deploy EDA](#deploy-eda)
-  - [Upgrades](#upgrades)
-  - [Advanced Configuration](#advanced-configuration)
-    - [Admin user account configuration](#admin-user-account-configuration)
-    - [Allow Local Resource Management](#allow-local-resource-management)
-    - [Database Fields Encryption Configuration](#database-fields-encryption-configuration)
-    - [Enable Event Streams](#enable-event-streams)
-    - [Additional Advanced Configuration](#additional-advanced-configuration)
-  - [Maintainers Docs](#maintainers-docs)
-
-<!-- Created by https://github.com/ekalinin/github-markdown-toc -->
-
-## Contributing
-
-Please visit our [contributing guidelines](./CONTRIBUTING.md) and [development guide](./docs/development.md) for information on how to set up your environment, build and deploy the operator, and submit changes.
-
-### Prerequisites
-
-* Install the kubernetes-based cluster of your choice:
-  * [Openshift](https://docs.openshift.com/container-platform/4.11/installing/index.html)
-  * [K8s](https://kubernetes.io/docs/setup/)
-  * [CodeReady containers](https://access.redhat.com/documentation/en-us/red_hat_openshift_local/2.5)
-  * [minikube](https://minikube.sigs.k8s.io/docs/start/)
-* Deploy AWX using the [awx-operator](https://github.com/ansible/awx-operator#basic-install)
-* [Create an OAuth2 token](./docs/create-awx-token.md) for your user in the AWX UI
-
-## Install the EDA Server Operator
-
-Before you begin, you need to have a k8s cluster up. If you don't already have a k8s cluster, you can use minikube to start a lightweight k8s cluster locally by following these [minikube test cluster docs](./docs/minikube-test-cluster.md).
-
-Once you have a running Kubernetes cluster, you can deploy EDA Server Operator into your cluster using [Kustomize](https://kubectl.docs.kubernetes.io/guides/introduction/kustomize/). Since kubectl version 1.14 kustomize functionality is built-in (otherwise, follow the instructions here to install the latest version of Kustomize: https://kubectl.docs.kubernetes.io/installation/kustomize/)
-
-> [!Note]
-> If you want to do a single-command install with no modifications, please see these docs [here](./docs/single-command-install.md).
-
-First, create a file called `kustomization.yaml` with the following content:
-
-```yaml
-apiVersion: kustomize.config.k8s.io/v1beta1
-kind: Kustomization
-resources:
-  - config/default
-
-# Set the image tags to match the git version from above
-images:
-  - name: quay.io/ansible/eda-server-operator
-    newTag: 0.0.1
-
-# Specify a custom namespace in which to install EDA
-namespace: eda
-```
-
-You can use kustomize directly to dynamically modify things like the operator deployment at deploy time.  For more info, see the [kustomize install docs](./docs/kustomize-install.md).
-
-
-
-Install the manifests by running this:
+With a running Kubernetes cluster (k3s works fine):
 
 ```bash
-$ kubectl apply -k .
+kubectl apply --server-side -k config/default
 ```
 
-Check that your operator pod is running, this may take about a minute.
+(`--server-side` because the CRD exceeds client-side annotation limits; add
+`--force-conflicts` when upgrading over a previous install.)
 
-```bash
-$ kubectl get pods
-```
+By default this installs into the `eda-server-operator-system` namespace; use
+a kustomize overlay to change the namespace, or apply a pre-rendered manifest.
 
-## Deploy EDA
-
-EDA is designed to be used alongside the [AWX project](https://github.com/ansible/awx) to trigger automation jobs in AWX. There is some configuration that needs to be done in AWX first so that EDA can  AWX.
-
-1. Create an access token in your AWX instance using [these docs](./docs/create-awx-token.md).
-
-2. Now that your operator pod is up and running, you can create an EDA Server resource by applying the following YAML:
-
-> **Warning**
-> At the moment, If you are using custom image eda-server and eda-ui images that are in a private registry, you will need to [create and configure a pull secret](#configuring-an-image-pull-secret).
+## Deploy an instance
 
 ```yaml
-# eda.yaml
+# reflex.yaml
 apiVersion: eda.ansible.com/v1alpha1
 kind: EDA
 metadata:
-  name: my-eda
+  name: reflex
+  namespace: reflex
 spec:
-  automation_server_url: https://awx-host
+  automation_server_url: https://your-ascender-or-awx-host
+  image_pull_policy: Always
 ```
-
-3. Now apply this yaml
 
 ```bash
-$ kubectl apply -f eda.yaml
+kubectl create namespace reflex
+kubectl apply -f reflex.yaml
 ```
 
-Once deployed, the EDA instance will be accessible by running:
+`automation_server_url` points at your Ascender/AWX API host. Create an
+access token there for rulebook actions
+([docs](./docs/create-awx-token.md)).
 
-```
-$ minikube service -n eda eda-demo-service --url
-```
-
-If you are using Openshift, you can take advantage of automatic Route configuration an EDA custom resource like this:
-
-```yaml
-apiVersion: eda.ansible.com/v1alpha1
-kind: EDA
-metadata:
-  name: eda-demo
-spec:
-  automation_server_url: https://awx-host
-  service_type: ClusterIP
-  ingress_type: Route
-  image_pull_secrets:
-    - pull_secret_name
-```
-
-If using Openshift, EDA instance will be accessible by running:
-
-```
-$ oc get route -n eda eda-demo
-```
-
-By default, the admin user is `admin` and the password is available in the `<resourcename>-admin-password` secret. To retrieve the admin password, run:
+The admin password is generated in the `<name>-admin-password` secret:
 
 ```bash
-$ kubectl get secret eda-demo-admin-password -o jsonpath="{.data.password}" | base64 --decode ; echo
-yDL2Cx5Za94g9MvBP6B73nzVLlmfgPjR
+kubectl -n reflex get secret reflex-admin-password \
+  -o jsonpath="{.data.password}" | base64 --decode ; echo
 ```
 
-## Upgrades
+## Advanced configuration
 
-We recommend you take an backup by creating an EDABackup resource before upgrading, particularly if the new version includes a PostgreSQL database version change.
+Upstream's docs remain valid — admin account, database field encryption,
+event streams, external databases, backups/restores:
 
-For information on how to upgrade, please see the [upgrading.md](./docs/upgrade/upgrading.md).
+- [Admin user, encryption, event streams — upstream README sections](https://github.com/ansible/eda-server-operator#advanced-configuration)
+- [EDA application settings](./docs/user-guide/advanced-configuration/settings.md)
+- [Database configuration](./docs/user-guide/database-configuration.md)
+- [Trusting a custom CA](./docs/user-guide/advanced-configuration/trusting-a-custom-certificate-authority.md)
+- [No Log](./docs/user-guide/advanced-configuration/no-log.md)
 
-## Advanced Configuration
-
-### Admin user account configuration
-
-There are three variables that are customizable for the admin user account creation.
-
-| Name                  | Description                                  | Default          |
-| --------------------- | -------------------------------------------- | ---------------- |
-| admin_user            | Name of the admin user                       | admin            |
-| admin_password_secret | Secret that contains the admin user password | Empty string     |
-
-
-> :warning: **admin_password_secret must be a Kubernetes secret and not your text clear password**.
-
-If `admin_password_secret` is not provided, the operator will look for a secret named `<resourcename>-admin-password` for the admin password. If it is not present, the operator will generate a password and create a Secret from it named `<resourcename>-admin-password`.
-
-To retrieve the admin password, run `kubectl get secret <resourcename>-admin-password -o jsonpath="{.data.password}" | base64 --decode ; echo`
-
-The secret that is expected to be passed should be formatted as follow:
+Two settings worth knowing for standalone use:
 
 ```yaml
----
-apiVersion: v1
-kind: Secret
-metadata:
-  name: <resourcename>-admin-password
-  namespace: <target namespace>
-stringData:
-  password: mysuperlongpassword
-```
-
-
-### Allow Local Resource Management
-
-Resources such as users, teams, or organizations are recommended to be managed by the *Platform Provider*. Flag `EDA_ALLOW_LOCAL_RESOURCE_MANAGEMENT` can be toggled to instruct whether EDA can create/modify/delete these resources. The following example allows EDA to manage such resources. It is necessary when EDA is deployed alone.
-
-```yaml
-apiVersion: eda.ansible.com/v1alpha1
-kind: EDA
-metadata:
-  name: eda
 spec:
   extra_settings:
+    # let Reflex manage users/teams/orgs itself (no AAP gateway)
     - setting: EDA_ALLOW_LOCAL_RESOURCE_MANAGEMENT
       value: true
-```
-
-### Database Fields Encryption Configuration
-
-This encryption key is used to encrypt sensitive data in the database.
-
-| Name                        | Description                                           | Default          |
-| --------------------------- | ----------------------------------------------------- | ---------------- |
-| db_fields_encryption_secret | Secret that contains the symmetric key for encryption | Generated        |
-
-
-> :warning: **db_fields_encryption_secret must be a Kubernetes secret and not your text clear secret value**.
-
-If `db_fields_encryption_secret` is not provided, the operator will look for a secret named `<resourcename>-db-fields-encryption-secret` for the encryption key. If it is not present, the operator will generate a secret value and create a Secret containing it named `<resourcename>-db-fields-encryption-secret`. It is important to not delete this secret as it will be needed for upgrades and if the pods get scaled down at any point. If you are using a GitOps flow, you will want to pass a secret key secret and not depend on the generated one.
-
-The secret should be formatted as follow:
-
-```yaml
----
-apiVersion: v1
-kind: Secret
-metadata:
-  name: custom-eda-db-encryption-secret
-  namespace: <target namespace>
-stringData:
-  secret_key: supersecuresecretkey
-```
-
-Then specify the name of the k8s secret on the EDA spec:
-
-```yaml
----
-spec:
-  ...
-  db_fields_encryption_secret: custom-eda-db-encryption-secret
-```
-
-### Enable Event Streams
-In order to get working event streams in a standalone deployment, you need to set the application variable `EDA_EVENT_STREAM_BASE_URL` to the URL where EDA Server would be accessible from internet by external services. This value must contain the scheme, public hostname and event stream path (set by default to `/eda-event-streams`) This is needed to generate the correct URLs for the event streams.
-Example:
-
-```yaml
-apiVersion: eda.ansible.com/v1alpha1
-kind: EDA
-metadata:
-  name: eda
-spec:
-  extra_settings:
+    # public URL for inbound event streams, if used
     - setting: EDA_EVENT_STREAM_BASE_URL
-      value: "https://mypublicdomain.com/eda-event-streams"
+      value: "https://your-public-host/eda-event-streams"
 ```
 
-Optionally, it is also recommended to set `event_stream.prefix` with a non guessable value (for example an UUID) to avoid unwanted access to the event streams or DDOS attacks. 
+## License and attribution
 
-```yaml
-apiVersion: eda.ansible.com/v1alpha1
-kind: EDA
-metadata:
-  name: eda
-spec:
-  event_stream:
-    prefix: "/f743d0ac-f9ca-11ef-9021-482ae389cd08"
-```
-
-### Additional Advanced Configuration
-- [No Log](./docs/user-guide/advanced-configuration/no-log.md)
-- [EDA application settings](./docs/user-guide/advanced-configuration/settings.md)
-- [Deploy a Specific Version of EDA](./docs/user-guide/advanced-configuration/deploying-a-specific-version.md)
-- [Trusting a Custom Certificate Authority](./docs/user-guide/advanced-configuration/trusting-a-custom-certificate-authority.md)
-- [Database Configuration](./docs/user-guide/database-configuration.md)
-- [Redis Deprecation Notice](./docs/user-guide/redis-configuration.md)
-
-## Maintainers Docs
-
-Maintainers of this repo need to carry out releases, triage issues, etc. There are docs for those types of administrative tasks in the `docs/maintainer/` directory.
-
-To release the EDA Server Operator, see these docs:
-* [Release Operator](./docs/maintainers/release.md)
+Based on
+[ansible/eda-server-operator](https://github.com/ansible/eda-server-operator),
+© Red Hat, Inc. and contributors (published under an Apache-2.0 badge;
+upstream currently lacks a LICENSE file). Reflex is a
+community project and is not affiliated with or endorsed by Red Hat.
+"Ansible" is a trademark of Red Hat, Inc.
