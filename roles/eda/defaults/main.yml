@@ -11,11 +11,11 @@ ui_disabled: false
 image_pull_policy: IfNotPresent
 image_pull_secrets: []
 
-_image: quay.io/ansible/eda-server
+_image: ghcr.io/reflex-automation/reflex-server
 _image_version: main
 _image_version: "{{ lookup('env', 'DEFAULT_EDA_VERSION') or 'main' }}"
 
-_image_web: quay.io/ansible/eda-ui
+_image_web: ghcr.io/reflex-automation/reflex-ui
 _image_web_version: "{{ lookup('env', 'DEFAULT_EDA_UI_VERSION') or 'main' }}"
 
 # Add a nodeSelector for the EDA pods. It must match a node's labels for the pod
