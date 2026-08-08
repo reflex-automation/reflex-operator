@@ -12,7 +12,6 @@ image_pull_policy: IfNotPresent
 image_pull_secrets: []
 
 _image: ghcr.io/reflex-automation/reflex-server
-_image_version: main
 _image_version: "{{ lookup('env', 'DEFAULT_EDA_VERSION') or 'main' }}"
 
 _image_web: ghcr.io/reflex-automation/reflex-ui

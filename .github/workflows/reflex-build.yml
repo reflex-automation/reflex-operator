@@ -8,7 +8,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
   packages: write
 
 env:
@@ -36,6 +36,13 @@ jobs:
           severity: CRITICAL,HIGH
           ignore-unfixed: true
           exit-code: '0'
+      - name: publish rendered manifest
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          kubectl kustomize config/default > operator.yaml
+          gh release create latest --title latest --notes "rolling release: operator manifest rendered from main" || true
+          gh release upload latest operator.yaml --clobber
 
   rescan:
     if: github.event_name == 'schedule'

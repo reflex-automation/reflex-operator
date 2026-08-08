@@ -1,80 +1,55 @@
-# Single-Command Installation Guide
-
-This document provides comprehensive instructions for the quick, single-command installation of the EDA Server Operator. Also covered are additional details such as prerequisites, uninstallation, and troubleshooting tips.
+# Single-Command Installation
 
 ## Prerequisites
-Before proceeding with the installation, ensure that the following prerequisites are met:
 
-1. **Kubernetes Cluster**: You need an active Kubernetes cluster. If you do not have one, you can set it up using platforms like Minikube, Kind, or a cloud provider like AWS, Azure, or GCP.
-
-2. **kubectl**: The Kubernetes command-line tool, kubectl, should be installed and configured to communicate with your cluster. You can check its availability by running `kubectl version`.
+1. **Kubernetes cluster**: k3s, Minikube, Kind, or any conformant cluster.
+2. **kubectl**: installed and pointed at your cluster (`kubectl version`).
 
 ## Installation
-The EDA Server Operator can be installed using a single command. This command applies a YAML file from the EDA Server Operator's GitHub repository directly to your Kubernetes cluster.
-
-Run the following command in your terminal to install the latest operator
 
 ```bash
-kubectl apply -f https://github.com/ansible/eda-server-operator/releases/latest/download/operator.yaml
+kubectl apply --server-side -f https://github.com/reflex-automation/reflex-operator/releases/latest/download/operator.yaml
 ```
 
-If you want to install a specific version instead, modify the version to whichever version you want to install. For example:
+This installs the CRDs and the operator into the `reflex` namespace
+(created if missing). `operator.yaml` is rendered from `config/default`
+and republished on every push to main, so it always matches the `main`
+operator image.
 
-```bash
-kubectl apply -f https://github.com/ansible/eda-server-operator/releases/download/1.0.0/operator.yaml
-```
-
-> [!Note]
-> This will create the EDA Server Operator resources in the eda-server-operator-system namespace.
-
-Now create your EDA custom resource by applying the `eda-demo.yml` file and you will soon have a working EDA instance!
+Then create your `EDA` custom resource. The operator watches its own
+namespace only, so the CR must go in `reflex` too:
 
 ```yaml
-# eda-demo.yaml
+# reflex.yaml
 apiVersion: eda.ansible.com/v1alpha1
 kind: EDA
 metadata:
-  name: my-eda
+  name: reflex
+  namespace: reflex
 spec:
-  automation_server_url: https://awx-host
+  automation_server_url: https://your-ascender-or-awx-host
 ```
 
 ```bash
-kubectl apply -f eda-demo.yaml
+kubectl apply -f reflex.yaml
 ```
 
-See the [README.md](../README.md) for more information on configuring EDA by modifying the `spec`.
+See the [README](../README.md) for configuring the `spec`.
 
 ## Upgrading
 
-## Pre-Upgrade Checklist
-
-* **Backup**: Backup your EDA instance by creating an EDABackup. 
-* **Review Release Notes**: Check the release notes for the new version of the EDA Server Operator. This can be found on the GitHub [releases page](https://github.com/ansible/eda-server-operator/releases). Pay attention to any breaking changes, new features, or specific instructions for upgrading from your current version.
-
-### Upgrade the Operator
-
-Check the [Releases Page](https://github.com/ansible/eda-server-operator/releases) for the latest EDA Server Operator verion. Copy the URL to the `operator.yaml` artifact for it, then apply it.
-
-For example, if upgrading to version 1.1.0, the command would be:
+Back up your instance first by creating an `EDABackup`, then re-apply:
 
 ```bash
-kubectl apply -f https://github.com/ansible/eda-server-operator/releases/download/1.1.0/operator.yaml
-``````
-
-Monitor the upgrade process by checking the status of the pods in the eda-server-operator-system namespace. You can use the following command:
-
-```bash
-kubectl get pods -n eda-server-operator-system
+kubectl apply --server-side --force-conflicts -f https://github.com/reflex-automation/reflex-operator/releases/latest/download/operator.yaml
 ```
 
+Watch the rollout with `kubectl -n reflex get pods`. If you are upgrading
+over an install made before the `reflex-operator-*` rename, see the
+cleanup note in the [README](../README.md#install).
 
 ## Cleanup
-If you wish to remove the EDA Server Operator from your Kubernetes cluster, follow these steps:
-
-Run the following command:
 
 ```bash
-kubectl delete -f https://github.com/ansible/eda-server-operator/releases/download/1.0.0/operator.yaml
+kubectl delete -f https://github.com/reflex-automation/reflex-operator/releases/latest/download/operator.yaml
 ```
-
