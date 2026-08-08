@@ -31,15 +31,44 @@ from the CR name, so instances can be called anything.
 With a running Kubernetes cluster (k3s works fine):
 
 ```bash
+kubectl apply --server-side -f https://github.com/reflex-automation/reflex-operator/releases/latest/download/operator.yaml
+```
+
+This installs the CRDs and the operator into the `reflex` namespace
+(created if missing). The manifest is re-rendered from `config/default`
+on every push to main. To install from a checkout instead:
+
+```bash
 kubectl apply --server-side -k config/default
 ```
 
 `--server-side` is needed because the CRD exceeds client-side annotation
 limits. Add `--force-conflicts` when upgrading over a previous install.
 
-By default this installs into the `eda-server-operator-system` namespace.
-Use a kustomize overlay to change the namespace, or apply a pre-rendered
-manifest.
+The operator watches its own namespace only, so `EDA` resources must be
+created in the same namespace. Use a kustomize overlay to change it.
+
+<details>
+<summary>Upgrading from an install made before the rename to <code>reflex-operator-*</code></summary>
+
+Operator resources used to be prefixed `eda-server-operator-`. After
+applying the new manifest, remove the leftovers:
+
+```bash
+kubectl -n reflex delete \
+  deployment/eda-server-operator-controller-manager \
+  serviceaccount/eda-server-operator-controller-manager \
+  service/eda-server-operator-controller-manager-metrics-service \
+  role/eda-server-operator-eda-manager-role \
+  role/eda-server-operator-leader-election-role \
+  rolebinding/eda-server-operator-eda-manager-rolebinding \
+  rolebinding/eda-server-operator-leader-election-rolebinding
+kubectl delete \
+  clusterrole/eda-server-operator-metrics-auth-role \
+  clusterrole/eda-server-operator-metrics-reader \
+  clusterrolebinding/eda-server-operator-metrics-auth-rolebinding
+```
+</details>
 
 ## Deploy an instance
 
@@ -56,7 +85,6 @@ spec:
 ```
 
 ```bash
-kubectl create namespace reflex
 kubectl apply -f reflex.yaml
 ```
 
@@ -82,18 +110,18 @@ encryption, event streams, external databases, and backups:
 - [Trusting a custom CA](./docs/user-guide/advanced-configuration/trusting-a-custom-certificate-authority.md)
 - [No Log](./docs/user-guide/advanced-configuration/no-log.md)
 
-For standalone use you may also want:
+If you use inbound event streams, set their public URL:
 
 ```yaml
 spec:
   extra_settings:
-    # let Reflex manage users/teams/orgs itself (no AAP gateway)
-    - setting: EDA_ALLOW_LOCAL_RESOURCE_MANAGEMENT
-      value: true
-    # public URL for inbound event streams, if used
     - setting: EDA_EVENT_STREAM_BASE_URL
       value: "https://your-public-host/eda-event-streams"
 ```
+
+Local management of users/teams/orgs is on by default in reflex-server
+(no AAP gateway), so `EDA_ALLOW_LOCAL_RESOURCE_MANAGEMENT` no longer
+needs to be set.
 
 ## License and attribution
 
