@@ -1,5 +1,13 @@
 FROM quay.io/operator-framework/ansible-operator:v1.42.3
 
+# pull in CVE fixes newer than the base image
+USER 0
+RUN microdnf upgrade -y && microdnf clean all \
+ && python3 -m ensurepip --upgrade \
+ && python3 -m pip install --no-cache-dir --upgrade cryptography pyasn1 \
+ && python3 -m pip uninstall -y pip
+USER 1001
+
 ARG DEFAULT_EDA_VERSION
 ARG DEFAULT_EDA_UI_VERSION
 ARG OPERATOR_VERSION
