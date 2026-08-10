@@ -1,0 +1,10 @@
+# CVEs compiled into the ansible-operator go binary from the base image.
+# Not fixable here; remove when a base image newer than v1.42.3 ships.
+CVE-2026-25681
+CVE-2026-27136
+CVE-2026-39821
+CVE-2026-56852
+GHSA-hrxh-6v49-42gf
+CVE-2026-27145
+CVE-2026-39822
+CVE-2026-42504
