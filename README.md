@@ -5,7 +5,13 @@ community-maintained continuation of Event-Driven Ansible (EDA) targeting
 open-source AWX-compatible controllers, mainly
 [CIQ Ascender](https://ciq.com/products/ascender).
 
-Friendly fork of
+Red Hat stopped developing EDA as a supported open-source product and now
+uses the code as the internal upstream of Ansible Automation Platform.
+Reflex tracks the ansible/* repos as friendly forks: the patch set stays
+small, upstream merges happen regularly, CVEs get patched, and releases
+are smoke-tested end to end against Ascender.
+
+Forked from
 [ansible/eda-server-operator](https://github.com/ansible/eda-server-operator),
 built with [Operator SDK](https://github.com/operator-framework/operator-sdk)
 and Ansible. It deploys
