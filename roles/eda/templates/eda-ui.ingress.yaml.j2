@@ -27,8 +27,8 @@ spec:
                 name: '{{ ansible_operator_meta.name }}-ui'
                 port:
                   number: 80
-          - path: '/'
-            pathType: '{{ ingress_path_type }}'
+          - path: '/api/eda/v1/external_event_stream'
+            pathType: Prefix
             backend:
               service:
                 name: '{{ ansible_operator_meta.name }}-event-stream'
