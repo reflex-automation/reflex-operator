@@ -41,6 +41,8 @@ jobs:
           make docker-build
         env:
           VERSION: main
+          # minikube's docker is too old for the runner's buildx
+          DOCKER_BUILDKIT: "0"
 
       - name: Deploy the EDA operator
         run: |
