@@ -13,8 +13,8 @@ the patch set stays small and upstream merges happen regularly. CVEs get
 patched, and every release is smoke-tested end to end against Ascender.
 
 This operator is a hard fork. It no longer tracks
-ansible/eda-server-operator, which was too poorly maintained for us:
-ingress bugs sat unfixed.
+ansible/eda-server-operator, which did not meet our needs: ingress bugs
+sat unfixed.
 
 Forked from
 [ansible/eda-server-operator](https://github.com/ansible/eda-server-operator),
