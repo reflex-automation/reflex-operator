@@ -1,15 +1,21 @@
 # Reflex Operator
 
-A Kubernetes operator that deploys and manages Reflex, a
-community-maintained continuation of Event-Driven Ansible (EDA) targeting
-open-source AWX-compatible controllers, mainly
-[CIQ Ascender](https://ciq.com/products/ascender).
+A Kubernetes operator that deploys and manages Reflex, a fork of
+Event-Driven Ansible (EDA) targeting open-source AWX-compatible
+controllers, mainly [CIQ Ascender](https://ciq.com/products/ascender).
 
-Red Hat stopped developing EDA as a supported open-source product and now
-uses the code as the internal upstream of Ansible Automation Platform.
-Reflex tracks the ansible/* repos as friendly forks: the patch set stays
-small, upstream merges happen regularly, CVEs get patched, and releases
-are smoke-tested end to end against Ascender.
+Upstream EDA is still actively developed in public by Red Hat. Reflex
+exists for standalone/Ascender fixes upstream doesn't carry by default
+(for example, `RESOURCE_SERVER__URL` defaults to AAP gateway mode, which
+breaks standalone login) plus a user-facing rebrand. reflex-server and
+reflex-ui are friendly forks of ansible/eda-server and ansible/ansible-ui:
+the patch set stays small and upstream merges happen regularly. Images are
+published, CVEs get patched, and releases are smoke-tested end to end
+against Ascender.
+
+This operator is a hard fork. It no longer tracks
+ansible/eda-server-operator, which wasn't maintained enough for our needs
+(ingress bugs, for example, sat unfixed).
 
 Forked from
 [ansible/eda-server-operator](https://github.com/ansible/eda-server-operator),
@@ -18,8 +24,8 @@ and Ansible. It deploys
 [reflex-server](https://github.com/reflex-automation/reflex-server) and
 [reflex-ui](https://github.com/reflex-automation/reflex-ui) via an `EDA`
 custom resource. The CRD keeps its upstream kind and group
-(`eda.ansible.com/v1alpha1`) so merges stay clean; resource names come
-from the CR name, so instances can be called anything.
+(`eda.ansible.com/v1alpha1`) for compatibility with existing manifests;
+resource names come from the CR name, so instances can be called anything.
 
 ## What Reflex changes
 
