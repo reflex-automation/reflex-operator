@@ -9,13 +9,12 @@ exists for standalone/Ascender fixes upstream doesn't carry by default
 (for example, `RESOURCE_SERVER__URL` defaults to AAP gateway mode, which
 breaks standalone login) plus a user-facing rebrand. reflex-server and
 reflex-ui are friendly forks of ansible/eda-server and ansible/ansible-ui:
-the patch set stays small and upstream merges happen regularly. Images are
-published, CVEs get patched, and releases are smoke-tested end to end
-against Ascender.
+the patch set stays small and upstream merges happen regularly. CVEs get
+patched, and every release is smoke-tested end to end against Ascender.
 
 This operator is a hard fork. It no longer tracks
-ansible/eda-server-operator, which wasn't maintained enough for our needs
-(ingress bugs, for example, sat unfixed).
+ansible/eda-server-operator, which was too poorly maintained for us:
+ingress bugs sat unfixed.
 
 Forked from
 [ansible/eda-server-operator](https://github.com/ansible/eda-server-operator),
