@@ -1,7 +1,7 @@
 # Reflex Operator
 
 A Kubernetes operator that deploys and manages Reflex, a
-community-maintained continuation of Event-Driven Ansible (EDA) targeting
+community-maintained fork of Event-Driven Ansible (EDA) targeting
 open-source AWX-compatible controllers, mainly
 [CIQ Ascender](https://ciq.com/products/ascender).
 
