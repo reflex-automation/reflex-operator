@@ -5,20 +5,21 @@ community-maintained continuation of Event-Driven Ansible (EDA) targeting
 open-source AWX-compatible controllers, mainly
 [CIQ Ascender](https://ciq.com/products/ascender).
 
-Red Hat stopped developing EDA as a supported open-source product and now
-uses the code as the internal upstream of Ansible Automation Platform.
-Reflex tracks the ansible/* repos as friendly forks: the patch set stays
-small, upstream merges happen regularly, CVEs get patched, and releases
-are smoke-tested end to end against Ascender.
+Red Hat still develops eda-server and ansible-ui, and Reflex tracks them
+as close friendly forks with regular upstream merges. It adds fixes and
+features for standalone Ascender/AWX use, patches CVEs, and ships releases
+smoke-tested end to end against Ascender.
 
-Forked from
+This operator was forked from
 [ansible/eda-server-operator](https://github.com/ansible/eda-server-operator),
-built with [Operator SDK](https://github.com/operator-framework/operator-sdk)
-and Ansible. It deploys
+which is not really maintained (ingress bugs sat unfixed), so it is now an
+independent fork and no longer syncs from upstream. It is built with
+[Operator SDK](https://github.com/operator-framework/operator-sdk)
+and Ansible, and deploys
 [reflex-server](https://github.com/reflex-automation/reflex-server) and
 [reflex-ui](https://github.com/reflex-automation/reflex-ui) via an `EDA`
 custom resource. The CRD keeps its upstream kind and group
-(`eda.ansible.com/v1alpha1`) so merges stay clean; resource names come
+(`eda.ansible.com/v1alpha1`) for compatibility; resource names come
 from the CR name, so instances can be called anything.
 
 ## What Reflex changes
@@ -27,7 +28,7 @@ from the CR name, so instances can be called anything.
   `ghcr.io/reflex-automation/{reflex-server,reflex-ui}:main` instead of
   the stale `quay.io/ansible/*` ones.
 - Deployed from HEAD with published images, so there is no waiting on
-  upstream releases. This matters: reflex-server needs PostgreSQL 14+
+  releases. This matters: reflex-server needs PostgreSQL 14+
   (default here is 15) and the `EDA_WORKER_KIND=websocket` wiring for
   rulebook websocket auth. Both are missing from the last upstream
   release (v1.0.2).
@@ -124,6 +125,21 @@ spec:
     - setting: EDA_EVENT_STREAM_BASE_URL
       value: "https://your-public-host/eda-event-streams"
 ```
+
+To let Prometheus scrape reflex-server's `/api/eda/v1/metrics/`, set a
+bearer token (superusers can also scrape without one). Settings land in
+a ConfigMap, so this is not secret storage:
+
+```yaml
+spec:
+  extra_settings:
+    - setting: EDA_METRICS_TOKEN
+      value: "change-me"
+```
+
+See [reflex-server](https://github.com/reflex-automation/reflex-server)
+for this and the other Reflex features (suggest-only activations,
+project push webhooks).
 
 Local management of users/teams/orgs is on by default in reflex-server
 (no AAP gateway), so `EDA_ALLOW_LOCAL_RESOURCE_MANAGEMENT` no longer
